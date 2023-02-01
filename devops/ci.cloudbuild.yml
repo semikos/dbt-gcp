@@ -1,0 +1,41 @@
+steps:
+  # Build test image.
+    - name: "gcr.io/kaniko-project/executor:${_KANIKO_VERSION}"
+      id: "build-ci"
+      args:
+        - "--dockerfile=devops/Dockerfile"
+        - "--destination=${_DBT_APP_IMAGE}"
+        - "--cache=true"
+        - "--cache-repo=${_DBT_APP_IMAGE}/cache"
+        - "--use-new-run"
+
+   # Check SQL Formatting
+    - name: "${_DBT_APP_IMAGE}"
+     id: "sql-formatter"
+     waitFor: ["build-ci"]
+     entrypoint: "sqlfluff"
+     args: ["lint", "/analytics"]
+
+   # DBT test.
+    - name: "${_DBT_APP_IMAGE}"
+      id: "dbt-run-test"
+      waitFor: ["build-ci"]
+      env:
+        - "ENV=sdx"
+        - "USER=sdx_user"
+        - "GCP_PROJECT_APP=${_GCP_PROJECT_APP}"
+        - "DBT_PROFILES_DIR=analytics"
+      entrypoint: bash
+      args:
+        - -c
+        - >-
+          dbt debug --project-dir=analytics &&
+          dbt build --project-dir=analytics
+substitutions:
+  _DBT_APP_IMAGE: "${_ARTIFACT_REGISTRY_URL}/dbt_app:${COMMIT_SHA}" 
+  _KANIKO_VERSION: "v1.8.0"
+
+timeout: 1800s
+options:
+  logging: CLOUD_LOGGING_ONLY
+

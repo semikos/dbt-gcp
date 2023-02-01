@@ -1,0 +1,74 @@
+steps:
+
+  - id: "check-dbt-image-exists"
+    name: "gcr.io/cloud-builders/gcloud"
+    entrypoint: bash
+    args:
+    - '-eEuo'
+    - 'pipefail'
+    - '-c'
+    - |-
+      gcloud container images describe ${_DBT_APP_IMAGE}
+  - id: 'tf-init'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    dir: ${_BUILD_DIR}
+    args: [
+        'init',
+        '-input=false'
+    ]
+
+  - id: 'tf-check-format'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    dir: ${_BUILD_DIR}
+    args: [
+        'fmt',
+        '-check',
+        '-recursive',
+    ]
+
+  - id: 'tf-validate'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    dir: ${_BUILD_DIR}
+    args: [
+        'validate',
+    ]
+
+  - id: 'tf-plan'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    dir: ${_BUILD_DIR}
+    args: [
+        'plan',
+        '-out=plan.tfplan',
+        '-input=false',
+        '-var-file=environments/${_TF_ENVIRONMENT}.tfvars',
+        '-var=dbt_image=${_DBT_APP_IMAGE}',
+    ]
+
+  - id: 'tf-apply'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    dir: ${_BUILD_DIR}
+    args: [
+        'apply',
+        '-input=false',
+        '-auto-approve',
+        'plan.tfplan',
+    ]
+
+  - id: 'tf-output-as-json'
+    name: 'hashicorp/terraform:${_TERRAFORM_VERSION}'
+    entrypoint: 'ash'
+    dir: ${_BUILD_DIR}
+    args:
+      - '-c'
+      - |-
+        terraform output -json > ./tf_output.json
+substitutions:
+  _DBT_APP_IMAGE: "${_ARTIFACT_REGISTRY_URL}/dbt_app:${COMMIT_SHA}" 
+
+artifacts:
+  objects:
+    location: 'gs://${_CDB_ARTIFACTS_BUCKET}/${_TF_ENVIRONMENT}/${COMMIT_SHA}/'
+    paths: ['${_BUILD_DIR}/plan.tfplan', '${_BUILD_DIR}/tf_output.json']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
