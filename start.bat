@@ -1,0 +1,1 @@
+poetry run dbt build --project-dir=analytics --profiles-dir=analytics

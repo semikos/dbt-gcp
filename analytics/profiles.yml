@@ -1,0 +1,29 @@
+config:
+  fail_fast: true
+analytics:
+  target: "{{  env_var('ENV')  }}"
+  outputs:
+    sdx:
+      dataset: stock_dataset
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      keyfile: C:\Users\Samy\gcp\gcp-demo-373915-799bcbecdd39.json
+      location: EU
+      method: service-account
+      priority: interactive
+      project: gcp-demo-373915
+      threads: 3
+      type: bigquery
+    dev:
+      type: bigquery
+      dataset: "" # Any value because it will be overwritten
+      fixed_retries: 1
+      location: EU
+      method: oauth
+      priority: interactive
+      threads: 4
+      timeout_seconds: 300
+      project: "{{  env_var('GCP_PROJECT_APP')  }}"
+      scopes:
+        - https://www.googleapis.com/auth/bigquery
+      maximum_bytes_billed: 10000000000

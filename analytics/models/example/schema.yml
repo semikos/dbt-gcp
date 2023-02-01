@@ -1,0 +1,26 @@
+
+version: 2
+
+models:
+  - name: stock
+    description: "A stock model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        tests:
+          - unique
+          - not_null
+      - name: name
+        description: "Name of the product"
+        tests:
+          - not_null
+      - name: disponibility
+        description: "Disponibility of the stock"
+      - name: currency
+        description: "Currency of the product"
+        tests:
+          - not_null
+      - name: remainingItems
+        description: "Remaining items in the stock"
+        tests:
+          - not_null
